@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import csv
 import io
@@ -21,7 +21,15 @@ BASE_DIR = (
     if getattr(sys, "frozen", False)
     else Path(__file__).resolve().parent
 )
-DATA_DIR = Path(os.environ["DATA_DIR"]).resolve() if os.environ.get("DATA_DIR") else BASE_DIR / "dados"
+
+# Diretório de dados:
+# - Em ambiente local: BASE_DIR / "dados" (ou DATA_DIR, se definido)
+# - Em ambiente somente leitura (como Vercel): fallback automático para /tmp/dados
+DATA_DIR = (
+    Path(os.environ["DATA_DIR"]).resolve()
+    if os.environ.get("DATA_DIR")
+    else BASE_DIR / "dados"
+)
 DATABASE_PATH = DATA_DIR / "fundef.db"
 FUNDEF_DATA_INICIAL = date(1997, 1, 1)
 FUNDEF_DATA_FINAL = date(2006, 12, 31)
@@ -112,8 +120,17 @@ from db_layer import (
 
 
 def get_connection() -> sqlite3.Connection:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DATABASE_PATH)
+    db_path = DATABASE_PATH
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Em ambientes como Vercel, o código fica em filesystem somente leitura.
+        # Usa /tmp/dados como fallback gravável (dados não são persistentes entre deploys).
+        tmp_dir = Path("/tmp") / "dados"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        db_path = tmp_dir / "fundef.db"
+
+    connection = sqlite3.connect(db_path)
     connection.row_factory = sqlite3.Row
     return connection
 
