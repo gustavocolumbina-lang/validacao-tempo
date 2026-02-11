@@ -9,8 +9,6 @@ __pycache__
 serviceAccount.json
 dados/
 scripts/
-templates/
-static/
 *.spec
 Procfile
 render.yaml
