@@ -524,7 +524,7 @@ th {
 
 .menu-principal a.active:hover,
 .menu-principal a.menu-link.active:hover {
-    transform: translateY(-4px) scale(1.08);
+    transform: translateY(-4px) scale(1.05);
 }
 
 .menu-principal a:focus {
