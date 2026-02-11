@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Importar dados (Excel)</h2>
+    <p>Faça upload de um arquivo Excel (.xlsx) com os mesmos cabeçalhos gerados pelo botão "Exportar Excel".</p>
+    <form method="post" enctype="multipart/form-data">
+        <label>Arquivo .xlsx
+            <input type="file" name="file" accept=".xlsx,.xls" required>
+        </label>
+        <div class="full acoes">
+            <button type="submit" class="botao">Importar</button>
+            <a class="botao secundario" href="{{ url_for('index') }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

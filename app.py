@@ -842,6 +842,171 @@ def exportar_excel() -> Response:
     )
 
 
+@app.route("/importar-excel", methods=["GET", "POST"])
+def importar_excel() -> str:
+    if request.method == "GET":
+        return render_template("import.html")
+
+    # POST: processar upload
+    if "file" not in request.files:
+        flash("Nenhum arquivo enviado.", "erro")
+        return render_template("import.html")
+
+    file = request.files["file"]
+    if not file or file.filename == "":
+        flash("Arquivo não selecionado.", "erro")
+        return render_template("import.html")
+
+    # validar extensão
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        flash("O arquivo deve ser .xlsx ou .xls", "erro")
+        return render_template("import.html")
+
+    try:
+        from openpyxl import load_workbook
+
+        # carregar workbook
+        workbook = load_workbook(file)
+        sheet = workbook.active
+
+        if not sheet:
+            flash("Arquivo Excel vazio.", "erro")
+            return render_template("import.html")
+
+        # ler cabeçalhos
+        headers = []
+        for cell in sheet[1]:
+            headers.append(cell.value)
+
+        if not headers:
+            flash("Arquivo não contém cabeçalhos.", "erro")
+            return render_template("import.html")
+
+        # processar linhas
+        inseridos = 0
+        duplicados = 0
+        erros: list[str] = []
+
+        for row_idx, row in enumerate(sheet.iter_rows(values_only=True, min_row=2), start=2):
+            # converter linha em dict
+            linha_dict = {headers[i]: row[i] for i in range(len(headers)) if i < len(row)}
+
+            # pular linhas vazias
+            if not linha_dict.get("nome"):
+                continue
+
+            # normalizar keys para lowercase
+            linha_dict = {k.strip().lower() if isinstance(k, str) else k: v for k, v in linha_dict.items()}
+
+            # preparar payload (mapear colunas para fields do formulário)
+            payload = {}
+            for coluna, valor in linha_dict.items():
+                # mapeia nome/nome_completo -> nome, cpf/CPF -> cpf, etc.
+                coluna_limpa = coluna.strip().lower() if isinstance(coluna, str) else coluna
+                valor_limpo = str(valor).strip() if valor else ""
+
+                if coluna_limpa in ("nome", "nome_completo"):
+                    payload["nome"] = valor_limpo
+                elif coluna_limpa in ("cpf",):
+                    payload["cpf"] = valor_limpo
+                elif coluna_limpa in ("rg",):
+                    payload["rg"] = valor_limpo
+                elif coluna_limpa in ("matricula",):
+                    payload["matricula"] = valor_limpo
+                elif coluna_limpa in ("escola", "local de trabalho"):
+                    payload["escola"] = valor_limpo
+                elif coluna_limpa in ("cargo",):
+                    payload["cargo"] = valor_limpo
+                elif coluna_limpa in ("situacao_servidor", "situação do servidor"):
+                    payload["situacao_servidor"] = valor_limpo
+                elif coluna_limpa in ("data_admissao", "data de admissão"):
+                    payload["data_admissao"] = valor_limpo
+                elif coluna_limpa in ("telefone",):
+                    payload["telefone"] = valor_limpo
+                elif coluna_limpa in ("email", "e-mail"):
+                    payload["email"] = valor_limpo
+                elif coluna_limpa in ("endereco", "endereço"):
+                    payload["endereco"] = valor_limpo
+                elif coluna_limpa in ("banco",):
+                    payload["banco"] = valor_limpo
+                elif coluna_limpa in ("agencia", "agência"):
+                    payload["agencia"] = valor_limpo
+                elif coluna_limpa in ("conta",):
+                    payload["conta"] = valor_limpo
+                elif coluna_limpa in ("tipo_conta", "tipo de conta"):
+                    payload["tipo_conta"] = valor_limpo
+                elif coluna_limpa in ("data_inicio_fundef", "data inicial do fundef"):
+                    payload["data_inicio_fundef"] = valor_limpo
+                elif coluna_limpa in ("data_fim_fundef", "data final do fundef"):
+                    payload["data_fim_fundef"] = valor_limpo
+                elif coluna_limpa in ("carga_horaria",):
+                    payload["carga_horaria"] = valor_limpo
+                elif coluna_limpa in ("quantidade_meses_trabalhados",):
+                    payload["quantidade_meses_trabalhados"] = valor_limpo
+                elif coluna_limpa in ("aceitou_declaracao",):
+                    payload["aceitou_declaracao"] = valor_limpo
+
+            # validar dados obrigatórios
+            campos_obrigatorios = ["nome", "cpf", "escola", "cargo"]
+            faltam = [c for c in campos_obrigatorios if not payload.get(c)]
+            if faltam:
+                erros.append(f"Linha {row_idx}: faltam campos {', '.join(faltam)}")
+                continue
+
+            # validar CPF
+            cpf_val = payload.get("cpf", "")
+            if not cpf_valido(cpf_val):
+                erros.append(f"Linha {row_idx}: CPF inválido ({cpf_val})")
+                continue
+
+            # verificar duplicado
+            cpf_limpo = only_digits(cpf_val)
+            existente = db_find_professor_by_cpf(cpf_limpo)
+            if existente:
+                duplicados += 1
+                continue  # pula linha, não erro
+
+            # preparar campos numerados/normalizados
+            payload["cpf"] = cpf_limpo
+            payload["escola"] = normalizar_escola(payload.get("escola", ""))
+            payload["situacao_servidor"] = normalizar_situacao_servidor(
+                payload.get("situacao_servidor", "Ativo")
+            )
+            payload["telefone"] = only_digits(payload.get("telefone", ""))
+            payload["carga_horaria"] = str(CARGA_HORARIA_SEMANAL_FIXA)
+
+            # tentar calcular meses se datas existem
+            meses = tentar_calcular_meses_validos(payload)
+            if meses:
+                payload["quantidade_meses_trabalhados"] = meses
+            else:
+                payload["quantidade_meses_trabalhados"] = 1
+
+            payload["aceitou_declaracao"] = 1
+            payload["criado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # inserir
+            try:
+                db_insert_professor(payload)
+                inseridos += 1
+            except Exception as e:
+                erros.append(f"Linha {row_idx}: erro ao inserir ({str(e)})")
+
+        # relatório final
+        flash(f"Importação concluída: {inseridos} inseridos, {duplicados} duplicados ignorados.", "sucesso")
+        if erros:
+            for erro in erros[:10]:  # mostrar até 10 erros
+                flash(erro, "aviso")
+            if len(erros) > 10:
+                flash(f"... e mais {len(erros) - 10} erros.", "aviso")
+
+        return redirect(url_for("index"))
+
+    except Exception as e:
+        flash(f"Erro ao processar arquivo: {str(e)}", "erro")
+        return render_template("import.html")
+
+
 @app.route("/rateio", methods=["GET", "POST"])
 def rateio() -> str:
     professores = db_professores_rateio()

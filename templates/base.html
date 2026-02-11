@@ -29,6 +29,7 @@
                     <a href="{{ url_for('cadastro') }}" class="menu-link {% if request.path == url_for('cadastro') %}active{% endif %}" {% if request.path == url_for('cadastro') %}aria-current="page"{% endif %}>Novo cadastro e cálculo</a>
                     <a href="{{ url_for('rateio') }}" class="menu-link {% if request.path == url_for('rateio') %}active{% endif %}" {% if request.path == url_for('rateio') %}aria-current="page"{% endif %}>Rateio dos precatórios</a>
                     <a href="{{ url_for('exportar_excel') }}" class="menu-link {% if request.path == url_for('exportar_excel') %}active{% endif %}" {% if request.path == url_for('exportar_excel') %}aria-current="page"{% endif %}>Exportar Excel</a>
+                    <a href="{{ url_for('importar_excel') }}" class="menu-link {% if request.path == url_for('importar_excel') %}active{% endif %}" {% if request.path == url_for('importar_excel') %}aria-current="page"{% endif %}>Importar dados</a>
                 </nav>
             </div>
         </header>
