@@ -315,6 +315,8 @@ td {
 /* Cabeçalho principal PRECATÓRIOS DO FUNDEB */
 .card-fundef-header {
     margin-bottom: 16px;
+    max-width: none;
+    width: 100%;
 }
 
 .card-fundef-header .card-fundef-conteudo {
@@ -324,7 +326,9 @@ td {
 .titulo-principal {
     margin: 0;
     color: #eef1ed;
-    font-size: clamp(2.2rem, 6vw, 3.2rem);
+    font-family: "Antonio", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 600;
+    font-size: clamp(2.6rem, 5vw, 3.6rem);
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -333,7 +337,9 @@ td {
     margin-top: 8px;
     margin-bottom: 0;
     color: #cfd4ff;
-    font-size: 0.95rem;
+    font-family: "Antonio", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 400;
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
 }
 
 .msg {
