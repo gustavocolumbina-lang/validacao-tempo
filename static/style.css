@@ -325,11 +325,12 @@ td {
 
 .titulo-principal {
     margin: 0;
-    color: #eef1ed;
+    color: #ffffff;
     font-family: "Antonio", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-weight: 600;
-    font-size: clamp(10rem, 35vw, 22rem);
-    letter-spacing: -0.02em;
+    /* tamanho grande e legível em diferentes telas */
+    font-size: clamp(3.6rem, 7vw, 4.8rem);
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     line-height: 0.9;
 }
@@ -337,10 +338,10 @@ td {
 .subtitulo-principal {
     margin-top: 12px;
     margin-bottom: 0;
-    color: #cfd4ff;
+    color: #34a8ba;
     font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-weight: 500;
-    font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+    font-size: clamp(0.9rem, 1.6vw, 1.1rem);
     letter-spacing: 0.05em;
 }
 
