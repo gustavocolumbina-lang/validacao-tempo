@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import time
 import tempfile
 from datetime import datetime
 from typing import Any
@@ -200,6 +201,9 @@ def insert_professor(prof_data: dict[str, Any]) -> int:
         return 0
     try:
         professor_id = _next_id("professor")
+        # Se o gerador de IDs falhar (retorna 0), usar timestamp para garantir unicidade
+        if not professor_id:
+            professor_id = int(time.time() * 1_000_000) % (2**31)  # microsegundos, mod para evitar overflow
         prof_data["id"] = professor_id
         prof_data["criado_em"] = _now_str()
         db.collection("professores").document(str(professor_id)).set(prof_data)
@@ -238,35 +242,46 @@ def save_rascunho(form_data: dict[str, Any], rascunho_id: int | None = None) -> 
         return 0
     try:
         agora = _now_str()
-        # prepara payload com metadados
-        payload = dict(form_data)
-        payload["atualizado_em"] = agora
-        payload["nome_referencia"] = (payload.get("nome") or "")[:200]
-        payload["cpf"] = payload.get("cpf", "")
+        # prepara documento com metadados e dados aninhados
+        dados_payload = dict(form_data)
+        nome_referencia = (dados_payload.get("nome") or "")[:200]
+        cpf_val = dados_payload.get("cpf", "")
 
         if rascunho_id:
             doc_id = str(int(rascunho_id))
-            # preserva criado_em se existir
             doc_ref = db.collection("rascunhos_professores").document(doc_id)
             existing = doc_ref.get()
             if existing.exists:
                 existing_data = existing.to_dict() or {}
-                payload["criado_em"] = existing_data.get("criado_em") or agora
+                criado_em = existing_data.get("criado_em") or agora
             else:
-                payload["criado_em"] = agora
-            payload["id"] = int(rascunho_id)
-            doc_ref.set(payload)
+                criado_em = agora
+            stored = {
+                "id": int(rascunho_id),
+                "nome_referencia": nome_referencia,
+                "cpf": cpf_val,
+                "dados": dados_payload,
+                "criado_em": criado_em,
+                "atualizado_em": agora,
+            }
+            doc_ref.set(stored)
             return int(rascunho_id)
 
         # cria novo id via contador
         novo_id = _next_id("rascunho") or 0
         if not novo_id:
-            # fallback: usa timestamp como id se contador falhar
-            novo_id = int(datetime.now().timestamp())
+            # fallback: usa timestamp em microsegundos como id se contador falhar
+            novo_id = int(time.time() * 1_000_000) % (2**31)
         doc_id = str(novo_id)
-        payload["id"] = novo_id
-        payload["criado_em"] = agora
-        db.collection("rascunhos_professores").document(doc_id).set(payload)
+        stored = {
+            "id": int(novo_id),
+            "nome_referencia": nome_referencia,
+            "cpf": cpf_val,
+            "dados": dados_payload,
+            "criado_em": agora,
+            "atualizado_em": agora,
+        }
+        db.collection("rascunhos_professores").document(doc_id).set(stored)
         return int(novo_id)
     except Exception as e:
         print(f"[save_rascunho] ERRO: {e}")
