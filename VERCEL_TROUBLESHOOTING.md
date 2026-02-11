@@ -13,7 +13,7 @@
    - ✅ Agora: Apenas `buildCommand` e `env`
 
 3. **db_layer.py corrigido**:
-   - ✅ `USE_FIREBASE` volta ao padrão "0" (local)
+   - ✅ `USE_FIREBASE` agora tem padrão "1" (Firestore) — use `USE_FIREBASE=0` para SQLite local
    - ✅ `vercel.json` sobrescreve para "1" em produção
    - ✅ Logs detalhados de inicialização Firebase
 
@@ -39,7 +39,7 @@ Antes de fazer push, verifique:
 - [ ] `vercel.json` tem `USE_FIREBASE: "1"` no env
 - [ ] `FIREBASE_CREDENTIALS_JSON` está em `vercel.json`
 - [ ] `requirements.txt` inclui `firebase-admin==6.1.0`
-- [ ] `db_layer.py` tem `USE_FIREBASE = os.environ.get("USE_FIREBASE", "0") == "1"`
+- [ ] `db_layer.py` tem `USE_FIREBASE = os.environ.get("USE_FIREBASE", "1") == "1"`
 - [ ] Pasta `api/` foi removida
 
 ## 📊 Arquivos Importantes

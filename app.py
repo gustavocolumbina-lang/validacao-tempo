@@ -100,7 +100,7 @@ FORM_FIELDS = [
     "aceitou_declaracao",
 ]
 
-# camada de dados (SQLite por padrão, Firestore se USE_FIREBASE=1)
+# camada de dados (Firestore por padrão, fallback para SQLite se USE_FIREBASE=0)
 from db_layer import (
     USE_FIREBASE,
     init_db as db_init,
@@ -472,15 +472,63 @@ def salvar_rascunho_cadastro(dados: dict[str, str], rascunho_id: int | None = No
     payload = {campo: dados.get(campo, "") for campo in FORM_FIELDS}
     payload["carga_horaria"] = str(CARGA_HORARIA_SEMANAL_FIXA)
     # usa camada de dados (Firestore ou SQLite)
-    return db_save_rascunho(payload, rascunho_id)
+    if USE_FIREBASE:
+        # Firestore path: delegate to db layer (behavior depends on db_layer implementation)
+        try:
+            return db_save_rascunho(payload, rascunho_id)
+        except Exception:
+            return 0
+
+    # SQLite fallback: persiste na tabela rascunhos_professores
+    dados_json = json.dumps({"dados": payload}, ensure_ascii=False)
+    nome_referencia = (payload.get("nome") or "")[:200]
+    cpf = payload.get("cpf", "")
+    agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if rascunho_id:
+        with get_connection() as conn:
+            conn.execute(
+                """
+                UPDATE rascunhos_professores
+                SET nome_referencia = ?, cpf = ?, dados_json = ?, atualizado_em = ?
+                WHERE id = ?
+                """,
+                (nome_referencia, cpf, dados_json, agora, int(rascunho_id)),
+            )
+        return int(rascunho_id)
+
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO rascunhos_professores (nome_referencia, cpf, dados_json, criado_em, atualizado_em)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (nome_referencia, cpf, dados_json, agora, agora),
+        )
+        return int(cur.lastrowid or 0)
 
 
 def carregar_rascunho_cadastro(rascunho_id: int) -> dict[str, object] | None:
-    r = db_carregar_rascunho(rascunho_id)
-    if not r:
-        return None
+    if USE_FIREBASE:
+        r = db_carregar_rascunho(rascunho_id)
+        if not r:
+            return None
+        payload = r.get("dados") if isinstance(r.get("dados"), dict) else r.get("dados", {})
+        source = r
+    else:
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT id, dados_json, criado_em, atualizado_em FROM rascunhos_professores WHERE id = ?",
+                (int(rascunho_id),),
+            ).fetchone()
+        if not row:
+            return None
+        try:
+            parsed = json.loads(row["dados_json"] or "{}")
+            payload = parsed.get("dados") if isinstance(parsed.get("dados"), dict) else parsed.get("dados", {})
+        except Exception:
+            payload = {}
+        source = {"id": row["id"], "criado_em": row["criado_em"], "atualizado_em": row["atualizado_em"]}
 
-    payload = r.get("dados") if isinstance(r.get("dados"), dict) else r.get("dados", {})
     dados: dict[str, str] = {}
     for campo in FORM_FIELDS:
         valor = payload.get(campo, "")
@@ -491,11 +539,16 @@ def carregar_rascunho_cadastro(rascunho_id: int) -> dict[str, object] | None:
         dados[campo] = str(valor).strip() if valor is not None else ""
 
     dados["carga_horaria"] = str(CARGA_HORARIA_SEMANAL_FIXA)
-    return {"id": r.get("id"), "dados": dados, "criado_em": r.get("criado_em"), "atualizado_em": r.get("atualizado_em")}
+    return {"id": source.get("id"), "dados": dados, "criado_em": source.get("criado_em"), "atualizado_em": source.get("atualizado_em")}
 
 
 def remover_rascunho(rascunho_id: int) -> None:
-    return db_remover_rascunho(rascunho_id)
+    if USE_FIREBASE:
+        return db_remover_rascunho(rascunho_id)
+
+    with get_connection() as conn:
+        conn.execute("DELETE FROM rascunhos_professores WHERE id = ?", (int(rascunho_id),))
+    return None
 
 
 # Initialize DB only if not using Firestore and not in read-only environment

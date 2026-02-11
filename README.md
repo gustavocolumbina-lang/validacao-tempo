@@ -43,7 +43,7 @@ Este projeto já está pronto para deploy via `render.yaml`.
 - `DATA_DIR`: diretório para persistência do banco (`/var/data` no Render).
 - `PORT`: porta de execução (gerenciada automaticamente no Render).
 - `FLASK_DEBUG`: use `1` apenas em ambiente local.
-- `USE_FIREBASE`: defina como `1` para usar Firestore (padrão: `0` usa SQLite).
+- `USE_FIREBASE`: defina como `1` para usar Firestore (padrão: `1` — recomendado para produção).
 - `FIREBASE_CREDENTIALS`: caminho do `serviceAccount.json` (desenvolvimento local).
 - `FIREBASE_CREDENTIALS_JSON`: JSON base64 do `serviceAccount.json` (Vercel/produção).
 

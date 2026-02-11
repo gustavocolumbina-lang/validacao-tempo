@@ -8,7 +8,7 @@ from typing import Any
 
 # NUNCA FALHA - proteção máxima contra exceções no import
 
-USE_FIREBASE = os.environ.get("USE_FIREBASE", "0") == "1"
+USE_FIREBASE = os.environ.get("USE_FIREBASE", "1") == "1"
 
 # Estado global - inicialização lazy
 _firebase_ready = False
@@ -155,8 +155,20 @@ def list_rascunhos() -> list[dict[str, Any]]:
     if not USE_FIREBASE:
         return []
     try:
-        docs = db.collection("rascunhos_professores").order_by("atualizado_em", direction=_fs.Query.DESCENDING if _fs else None).stream()
-        return [doc.to_dict() for doc in docs]
+        docs = db.collection("rascunhos_professores").order_by(
+            "atualizado_em", direction=_fs.Query.DESCENDING if _fs else None
+        ).stream()
+        resultado: list[dict[str, Any]] = []
+        for doc in docs:
+            data = doc.to_dict() or {}
+            # garante que exista campo id numérico quando possível
+            try:
+                data_id = int(data.get("id") or doc.id)
+            except Exception:
+                data_id = doc.id
+            data["id"] = data_id
+            resultado.append(data)
+        return resultado
     except Exception as e:
         print(f"[list_rascunhos] ERRO: {e}")
         return []
@@ -217,33 +229,70 @@ def delete_professor(professor_id: int) -> bool:
         print(f"[delete_professor] ERRO: {e}")
         return False
 
-def save_rascunho(user_id: str, form_data: dict[str, Any]) -> bool:
+def save_rascunho(form_data: dict[str, Any], rascunho_id: int | None = None) -> int:
+    """Salva ou atualiza um rascunho em Firestore.
+
+    Retorna o id numérico do rascunho (int) em caso de sucesso, ou 0 em falha.
+    """
     if not USE_FIREBASE:
-        return False
+        return 0
     try:
-        form_data["atualizado_em"] = _now_str()
-        db.collection("rascunhos_professores").document(user_id).set(form_data)
-        return True
+        agora = _now_str()
+        # prepara payload com metadados
+        payload = dict(form_data)
+        payload["atualizado_em"] = agora
+        payload["nome_referencia"] = (payload.get("nome") or "")[:200]
+        payload["cpf"] = payload.get("cpf", "")
+
+        if rascunho_id:
+            doc_id = str(int(rascunho_id))
+            # preserva criado_em se existir
+            doc_ref = db.collection("rascunhos_professores").document(doc_id)
+            existing = doc_ref.get()
+            if existing.exists:
+                existing_data = existing.to_dict() or {}
+                payload["criado_em"] = existing_data.get("criado_em") or agora
+            else:
+                payload["criado_em"] = agora
+            payload["id"] = int(rascunho_id)
+            doc_ref.set(payload)
+            return int(rascunho_id)
+
+        # cria novo id via contador
+        novo_id = _next_id("rascunho") or 0
+        if not novo_id:
+            # fallback: usa timestamp como id se contador falhar
+            novo_id = int(datetime.now().timestamp())
+        doc_id = str(novo_id)
+        payload["id"] = novo_id
+        payload["criado_em"] = agora
+        db.collection("rascunhos_professores").document(doc_id).set(payload)
+        return int(novo_id)
     except Exception as e:
         print(f"[save_rascunho] ERRO: {e}")
-        return False
+        return 0
 
-def carregar_rascunho(user_id: str) -> dict[str, Any] | None:
+def carregar_rascunho(rascunho_id: int) -> dict[str, Any] | None:
     if not USE_FIREBASE:
         return None
     try:
-        doc = db.collection("rascunhos_professores").document(user_id).get()
+        doc = db.collection("rascunhos_professores").document(str(int(rascunho_id))).get()
         if doc.exists:
-            return doc.to_dict()
+            data = doc.to_dict() or {}
+            try:
+                data["id"] = int(data.get("id") or rascunho_id)
+            except Exception:
+                data["id"] = data.get("id")
+            return data
     except Exception as e:
         print(f"[carregar_rascunho] ERRO: {e}")
     return None
 
-def remover_rascunho(user_id: str) -> bool:
+def remover_rascunho(rascunho_id: int) -> bool:
     if not USE_FIREBASE:
         return False
     try:
-        db.collection("rascunhos_professores").document(user_id).delete()
+        db.collection("rascunhos_professores").document(str(int(rascunho_id))).delete()
         return True
     except Exception as e:
         print(f"[remover_rascunho] ERRO: {e}")
