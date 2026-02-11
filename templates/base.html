@@ -12,32 +12,43 @@
 <body>
     <main class="container">
         <header class="topo">
-            <section class="card-fundef card-fundef-header" aria-label="Precatórios do FUNDEB">
-                <div class="card-fundef-conteudo">
-                    <h1 class="titulo-principal">PRECATÓRIOS DO FUNDEB</h1>
-                    <p class="subtitulo-principal">
-                        Cadastro e Cálculo dos Meses Trabalhados - Precatórios FUNDEF
-                    </p>
+            <div class="header-glass">
+                <div class="header-topbar">
+                    <div class="brand">
+                        <span class="brand-title">PRECATÓRIOS FUNDEB</span>
+                        <span class="brand-sub">Cadastro & Cálculo</span>
+                    </div>
+                    <div class="header-actions" aria-hidden="true">
+                        <!-- espaço para futuras ações / usuário -->
+                    </div>
                 </div>
-                <div class="card-fundef-faixa" aria-hidden="true">
-                    <span class="f1"></span>
-                    <span class="f2"></span>
-                    <span class="f3"></span>
-                    <span class="f4"></span>
-                    <span class="f5"></span>
-                    <span class="f6"></span>
-                    <span class="f7"></span>
-                    <span class="f8"></span>
-                </div>
-            </section>
 
-            <p class="subtitulo-municipio">Município de Terra Nova/PE</p>
-            <nav>
-                <a href="{{ url_for('index') }}">Início</a>
-                <a href="{{ url_for('cadastro') }}">Novo cadastro e cálculo</a>
-                <a href="{{ url_for('rateio') }}">Rateio dos precatórios</a>
-                <a href="{{ url_for('exportar_excel') }}">Exportar Excel</a>
-            </nav>
+                <section class="card-fundef card-fundef-header" aria-label="Precatórios do FUNDEB">
+                    <div class="card-fundef-conteudo">
+                        <h1 class="titulo-principal">PRECATÓRIOS DO FUNDEB</h1>
+                        <p class="subtitulo-principal">
+                            Cadastro e Cálculo dos Meses Trabalhados - Precatórios FUNDEF
+                        </p>
+                    </div>
+                    <div class="card-fundef-faixa" aria-hidden="true">
+                        <span class="f1"></span>
+                        <span class="f2"></span>
+                        <span class="f3"></span>
+                        <span class="f4"></span>
+                        <span class="f5"></span>
+                        <span class="f6"></span>
+                        <span class="f7"></span>
+                        <span class="f8"></span>
+                    </div>
+                </section>
+
+                <nav class="menu-principal" aria-label="Menu principal">
+                    <a href="{{ url_for('index') }}" class="menu-link {% if request.path == url_for('index') %}active{% endif %}" {% if request.path == url_for('index') %}aria-current="page"{% endif %}>Início</a>
+                    <a href="{{ url_for('cadastro') }}" class="menu-link {% if request.path == url_for('cadastro') %}active{% endif %}" {% if request.path == url_for('cadastro') %}aria-current="page"{% endif %}>Novo cadastro e cálculo</a>
+                    <a href="{{ url_for('rateio') }}" class="menu-link {% if request.path == url_for('rateio') %}active{% endif %}" {% if request.path == url_for('rateio') %}aria-current="page"{% endif %}>Rateio dos precatórios</a>
+                    <a href="{{ url_for('exportar_excel') }}" class="menu-link {% if request.path == url_for('exportar_excel') %}active{% endif %}" {% if request.path == url_for('exportar_excel') %}aria-current="page"{% endif %}>Exportar Excel</a>
+                </nav>
+            </div>
         </header>
 
         {% with mensagens = get_flashed_messages(with_categories=true) %}
