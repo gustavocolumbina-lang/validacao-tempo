@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -9,8 +9,26 @@
 <body>
     <main class="container">
         <header class="topo">
+            <section class="card-fundef card-fundef-header" aria-label="Precatórios do FUNDEB">
+                <div class="card-fundef-conteudo">
+                    <h1 class="titulo-principal">PRECATÓRIOS DO FUNDEB</h1>
+                    <p class="subtitulo-principal">
+                        Cadastro e Cálculo dos Meses Trabalhados - Precatórios FUNDEF
+                    </p>
+                </div>
+                <div class="card-fundef-faixa" aria-hidden="true">
+                    <span class="f1"></span>
+                    <span class="f2"></span>
+                    <span class="f3"></span>
+                    <span class="f4"></span>
+                    <span class="f5"></span>
+                    <span class="f6"></span>
+                    <span class="f7"></span>
+                    <span class="f8"></span>
+                </div>
+            </section>
+
             <p class="subtitulo-municipio">Município de Terra Nova/PE</p>
-            <h1>Cadastro e Cálculo dos Meses Trabalhados - Precatórios FUNDEF</h1>
             <nav>
                 <a href="{{ url_for('index') }}">Início</a>
                 <a href="{{ url_for('cadastro') }}">Novo cadastro e cálculo</a>
@@ -18,23 +36,6 @@
                 <a href="{{ url_for('exportar_excel') }}">Exportar Excel</a>
             </nav>
         </header>
-
-        <section class="card-fundef" aria-label="Card Precatórios do FUNDEF">
-            <div class="card-fundef-conteudo">
-                <p>PRECATÓRIOS DO</p>
-                <h2>FUNDEF</h2>
-            </div>
-            <div class="card-fundef-faixa" aria-hidden="true">
-                <span class="f1"></span>
-                <span class="f2"></span>
-                <span class="f3"></span>
-                <span class="f4"></span>
-                <span class="f5"></span>
-                <span class="f6"></span>
-                <span class="f7"></span>
-                <span class="f8"></span>
-            </div>
-        </section>
 
         {% with mensagens = get_flashed_messages(with_categories=true) %}
             {% if mensagens %}

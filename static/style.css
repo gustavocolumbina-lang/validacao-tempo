@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --bg: #f6f8fb;
     --card: #ffffff;
     --primaria: #174f8a;
@@ -310,6 +310,30 @@ td {
 
 .card-fundef-faixa .f8 {
     background: #d71920;
+}
+
+/* Cabeçalho principal PRECATÓRIOS DO FUNDEB */
+.card-fundef-header {
+    margin-bottom: 16px;
+}
+
+.card-fundef-header .card-fundef-conteudo {
+    text-align: center;
+}
+
+.titulo-principal {
+    margin: 0;
+    color: #eef1ed;
+    font-size: clamp(2.2rem, 6vw, 3.2rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.subtitulo-principal {
+    margin-top: 8px;
+    margin-bottom: 0;
+    color: #cfd4ff;
+    font-size: 0.95rem;
 }
 
 .msg {
