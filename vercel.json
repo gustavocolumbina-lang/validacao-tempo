@@ -4,10 +4,5 @@
   "env": {
     "PYTHONUNBUFFERED": "1",
     "USE_FIREBASE": "0"
-  },
-  "functions": {
-    "wsgi.py": {
-      "runtime": "python3.11"
-    }
   }
 }
