@@ -508,11 +508,31 @@ def salvar_rascunho_cadastro(dados: dict[str, str], rascunho_id: int | None = No
 
 
 def carregar_rascunho_cadastro(rascunho_id: int) -> dict[str, object] | None:
+    # Recupera o documento (Firestore) ou a linha (SQLite) e normaliza vários formatos
+    payload: dict[str, object] = {}
+    source: dict[str, object] = {}
+
     if USE_FIREBASE:
         r = db_carregar_rascunho(rascunho_id)
         if not r:
             return None
-        payload = r.get("dados") if isinstance(r.get("dados"), dict) else r.get("dados", {})
+        # r pode ter formatos diferentes dependendo de quando foi salvo
+        # 1) r['dados'] é dict -> ideal
+        # 2) r contém campos de formulário no top-level -> compatibilidade legada
+        # 3) r['dados'] é JSON string -> parse
+        if isinstance(r.get("dados"), dict):
+            payload = r.get("dados")
+        elif isinstance(r.get("dados"), str):
+            try:
+                payload = json.loads(r.get("dados"))
+            except Exception:
+                payload = {}
+        else:
+            # tenta extrair campos top-level
+            for campo in FORM_FIELDS:
+                if campo in r:
+                    payload = {campo: r.get(campo) for campo in FORM_FIELDS}
+                    break
         source = r
     else:
         with get_connection() as conn:
@@ -524,7 +544,13 @@ def carregar_rascunho_cadastro(rascunho_id: int) -> dict[str, object] | None:
             return None
         try:
             parsed = json.loads(row["dados_json"] or "{}")
-            payload = parsed.get("dados") if isinstance(parsed.get("dados"), dict) else parsed.get("dados", {})
+            if isinstance(parsed.get("dados"), dict):
+                payload = parsed.get("dados")
+            elif isinstance(parsed, dict):
+                # se parsed já é o objeto de dados
+                payload = parsed.get("dados") if isinstance(parsed.get("dados"), dict) else parsed
+            else:
+                payload = {}
         except Exception:
             payload = {}
         source = {"id": row["id"], "criado_em": row["criado_em"], "atualizado_em": row["atualizado_em"]}
@@ -552,12 +578,19 @@ def remover_rascunho(rascunho_id: int) -> None:
 
 
 # Initialize DB only if not using Firestore and not in read-only environment
-# Skip initialization for Vercel read-only filesystem (use Firestore instead)
+# For SQLite (USE_FIREBASE==False) ensure local schema is created by calling the
+# local init_db() defined in this module. We still call db_layer.init_db() for
+# completeness when appropriate.
 if not USE_FIREBASE:
     try:
-        db_init()
+        init_db()
     except (OSError, IOError):
         pass  # Ignore if filesystem is read-only (Vercel) or no permission
+    try:
+        # também tenta inicializar qualquer meta do db_layer (no caso de AD C)
+        db_init()
+    except Exception:
+        pass
 
 
 @app.route("/")
